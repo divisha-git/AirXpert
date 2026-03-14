@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../main.dart';
 import '../models/item.dart';
 import '../state/app_state.dart';
@@ -17,7 +18,7 @@ class ProductDetailScreen extends StatelessWidget {
       t('Capacity', 'திறன்'): product.id == 'p2' ? '2.0 Ton' : '1.5 Ton',
       t('Type', 'வகை'): product.id == 'p2' ? t('Cassette', 'கேஸெட்') : t('Split', 'ஸ்ப்ளிட்'),
       t('Warranty', 'உத்தரவாதம்'): t('1 Year comprehensive', '1 ஆண்டு முழுமை'),
-      t('Availability', 'கிடைக்கும் நிலை'): t('In stock', 'ஸ்டாக்கில் உள்ளது'),
+      t('Availability', 'கிடைக்கும் நிலை'): product.inStock ? t('In stock', 'ஸ்டாக்கில் உள்ளது') : t('Out of stock', 'ஸ்டாக் இல்லை'),
     };
 
     return Scaffold(
@@ -29,7 +30,7 @@ class ProductDetailScreen extends StatelessWidget {
             aspectRatio: 16 / 9,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(product.imageUrl, fit: BoxFit.cover),
+              child: _renderDetailImage(product.imageUrl),
             ),
           ),
           const SizedBox(height: 12),
@@ -62,11 +63,13 @@ class ProductDetailScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                AppState.instance.clearCart();
-                AppState.instance.addToCart(CartItem(id: product.id, name: product.name, price: product.price, type: 'product'));
-                Navigator.pushNamed(context, '/order-summary');
-              },
+              onPressed: product.inStock
+                  ? () {
+                      AppState.instance.clearCart();
+                      AppState.instance.addToCart(CartItem(id: product.id, name: product.name, price: product.price, type: 'product'));
+                      Navigator.pushNamed(context, '/order-summary');
+                    }
+                  : null,
               child: Text(t('Buy Now', 'இப்போதே வாங்க')), 
             ),
           )
@@ -74,4 +77,13 @@ class ProductDetailScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _renderDetailImage(String url) {
+  if (url.startsWith('data:image')) {
+    final base64Data = url.split(',').last;
+    final bytes = base64Decode(base64Data);
+    return Image.memory(bytes, fit: BoxFit.cover);
+  }
+  return Image.network(url, fit: BoxFit.cover);
 }

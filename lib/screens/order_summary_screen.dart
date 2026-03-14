@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../main.dart';
 import '../state/app_state.dart';
 
@@ -33,7 +32,10 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
     final total = subtotal + installFee;
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('Order Summary', 'ஆர்டர் சுருக்கம்'))),
+      appBar: AppBar(
+        title: Text(t('Order Summary', 'ஆர்டர் சுருக்கம்')),
+        leading: backOrHomeButton(context),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(

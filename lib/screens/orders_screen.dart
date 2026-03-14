@@ -13,7 +13,10 @@ class OrdersScreen extends StatelessWidget {
     final orders = AppState.instance.orders.reversed.toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('My Orders', 'என் ஆர்டர்கள்'))),
+      appBar: AppBar(
+        title: Text(t('My Orders', 'என் ஆர்டர்கள்')),
+        leading: backOrHomeButton(context),
+      ),
       body: orders.isEmpty
           ? Center(child: Text(t('No orders yet', 'இன்னும் ஆர்டர்கள் இல்லை')))
           : ListView.builder(

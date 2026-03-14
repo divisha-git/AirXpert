@@ -1,7 +1,6 @@
-/// Domain models used across the AirXpert app.
-///
-/// These are kept deliberately simple and in‑memory only so the
-/// UI can focus on a clean, production‑style experience.
+// Domain models used across the AirXpert app.
+// These are kept deliberately simple and in‑memory only so the
+// UI can focus on a clean, production‑style experience.
 
 class Product {
   final String id;
@@ -9,6 +8,7 @@ class Product {
   final String description;
   final double price;
   final String imageUrl; // placeholder image
+  final bool inStock;
 
   const Product({
     required this.id,
@@ -16,6 +16,7 @@ class Product {
     required this.description,
     required this.price,
     required this.imageUrl,
+    this.inStock = true,
   });
 }
 
@@ -25,6 +26,7 @@ class SparePart {
   final String description;
   final double price;
   final String imageUrl; // placeholder image
+  final bool inStock;
 
   const SparePart({
     required this.id,
@@ -32,6 +34,7 @@ class SparePart {
     required this.description,
     required this.price,
     required this.imageUrl,
+    this.inStock = true,
   });
 }
 
@@ -143,5 +146,23 @@ class Order {
     required this.items,
     required this.total,
     this.status = 'placed',
+  });
+}
+
+class FeedbackEntry {
+  final String id;
+  final String userName;
+  final String userEmail;
+  final String message;
+  final int rating;
+  final DateTime createdAt;
+
+  const FeedbackEntry({
+    required this.id,
+    required this.userName,
+    required this.userEmail,
+    required this.message,
+    required this.rating,
+    required this.createdAt,
   });
 }

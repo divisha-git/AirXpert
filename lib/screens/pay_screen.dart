@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'package:url_launcher/url_launcher.dart';
 import '../main.dart';
 import '../state/app_state.dart';
@@ -13,9 +14,15 @@ class PayScreen extends StatelessWidget {
 
     final upiId = 'airxpert@upi';
     final amount = AppState.instance.totalAmount.toStringAsFixed(2);
+    final upiUri = 'upi://pay?pa=$upiId&pn=AirXpert&am=$amount&cu=INR';
+    final qrUrl =
+        'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${Uri.encodeComponent(upiUri)}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('Pay using QR', 'QR மூலம் பணம் செலுத்தவும்'))),
+      appBar: AppBar(
+        title: Text(t('Pay using QR', 'QR மூலம் பணம் செலுத்தவும்')),
+        leading: backOrHomeButton(context),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -31,7 +38,13 @@ class PayScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.black12),
                   ),
-                  child: const Icon(Icons.qr_code_2, size: 200),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.network(
+                    qrUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.qr_code_2, size: 200),
+                  ),
                 ),
               ),
             ),
@@ -50,17 +63,33 @@ class PayScreen extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () async {
-                final uri = Uri.parse('upi://pay?pa=$upiId&pn=AirXpert&am=$amount&cu=INR');
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                // Prefer Google Pay via intent on Android; fallback to generic UPI
+                final gpayIntent = Uri.parse(
+                    'intent://upi/pay?pa=$upiId&pn=AirXpert&am=$amount&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end');
+                final genericUpi = Uri.parse(upiUri);
+                bool launched = false;
+                if (Platform.isAndroid && await canLaunchUrl(gpayIntent)) {
+                  launched =
+                      await launchUrl(gpayIntent, mode: LaunchMode.externalApplication);
+                }
+                if (!launched && await canLaunchUrl(genericUpi)) {
+                  launched = await launchUrl(genericUpi,
+                      mode: LaunchMode.externalApplication);
+                }
+                if (!launched && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(t('No UPI app found', 'UPI ஆப் இல்லை'))),
+                  );
                 }
               },
               icon: const Icon(Icons.open_in_new_rounded),
-              label: Text(t('Open UPI app', 'UPI ஆப்பை திறக்க')),
+              label: Text(t('Pay with GPay / UPI app', 'GPay/UPI மூலம் செலுத்தவும்')),
             ),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
+                final total = AppState.instance.cartTotal;
+                AppState.instance.addPayment(total, 'UPI');
                 final order = AppState.instance.placeOrderFromCart(status: 'paid');
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(t('Payment success. Order #', 'கட்டணம் வெற்றி. ஆர்டர் #') + order.id)),

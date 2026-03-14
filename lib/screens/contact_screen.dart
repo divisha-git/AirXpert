@@ -8,8 +8,8 @@ class ContactScreen extends StatelessWidget {
   const ContactScreen({super.key, this.embedInScaffold = true});
 
   final String shopName = 'AirXpert AC Services';
-  final String address = '123, Cooling Street, City Center, YourCity';
-  final String phone = '+911234567890';
+  final String address = '89/116, Paramathy Road, Opposite Kanna Super Market, Namakkal-637001';
+  final String phone = '9884775851';
 
   Future<void> _call() async {
     final uri = Uri(scheme: 'tel', path: phone);
@@ -19,8 +19,11 @@ class ContactScreen extends StatelessWidget {
   }
 
   Future<void> _whatsapp() async {
-    // Normalize phone for WhatsApp (digits only, no '+')
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    // Normalize phone and ensure country code (India default +91)
+    String digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 10) {
+      digits = '91$digits';
+    }
     final waApp = Uri.parse('whatsapp://send?phone=$digits');
     final waWeb = Uri.parse('https://wa.me/$digits');
     if (await canLaunchUrl(waApp)) {
@@ -38,7 +41,7 @@ class ContactScreen extends StatelessWidget {
     String t(String en, String ta) => lang == 'ta' ? ta : en;
 
     final shopNameTa = 'ஏர்எக்ஸ்பர்ட் ஏசி சேவைகள்';
-    final addressTa = '123, குளிர்ச்சி தெரு, நகர மையம், உங்கள் நகரம்';
+    final addressTa = '89/116, பரமாத்தி ரோடு, கன்னா சூப்பர் மார்க்கெட் எதிரில், நாமக்கல்-637001';
 
     Widget body = Padding(
       padding: const EdgeInsets.all(16.0),
@@ -90,7 +93,7 @@ class ContactScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t('Contact Us', 'தொடர்பு கொள்ள')),
-        automaticallyImplyLeading: true,
+        leading: backOrHomeButton(context),
       ),
       body: body,
     );

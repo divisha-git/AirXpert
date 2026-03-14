@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../state/app_state.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,20 +12,38 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _navigated = false;
+
+  void _navigateNext() {
+    if (!mounted || _navigated) return;
+    _navigated = true;
+    final user = AppState.instance.currentUser;
+    final target = user == null ? '/login' : (user.role == 'admin' ? '/admin' : '/user');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, target);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      final user = AppState.instance.currentUser;
-      if (user == null) {
-        Navigator.pushReplacementNamed(context, '/login');
-      } else if (user.role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin');
-      } else {
-        Navigator.pushReplacementNamed(context, '/user');
+    () async {
+      try {
+        await Firebase.initializeApp().timeout(const Duration(seconds: 3));
+      } catch (_) {
+        // Ignore: initialization may have been done or relies on platform config
       }
-    });
+      final initFuture = AppState.instance.init();
+      await Future.any([
+        initFuture,
+        Future.delayed(const Duration(seconds: 3)),
+      ]);
+      AppState.instance.migrateImageUrlsIfNeeded();
+      if (!mounted) return;
+      _navigateNext();
+    }();
+    Future.delayed(const Duration(seconds: 4), _navigateNext);
   }
 
   @override

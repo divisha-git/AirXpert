@@ -219,7 +219,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                           'ஏற்கனவே கணக்கு உள்ளதா? ')),
                                       TextButton(
                                         onPressed: () {
-                                          Navigator.pushReplacementNamed(
+                                          Navigator.pushNamed(
                                               context, '/login');
                                         },
                                         child: Text(t('Login', 'உள்நுழைக')),

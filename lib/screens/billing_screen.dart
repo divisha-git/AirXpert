@@ -150,7 +150,7 @@ class _BillingScreenState extends State<BillingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(t('Billing', 'பில்')),
-        automaticallyImplyLeading: true,
+        leading: backOrHomeButton(context),
       ),
       body: body,
     );

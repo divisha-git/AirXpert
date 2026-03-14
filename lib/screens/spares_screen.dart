@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../main.dart';
 import '../models/item.dart';
@@ -42,13 +43,15 @@ class SparesScreen extends StatelessWidget {
       }
     }
 
-    Widget content = GridView.builder(
-      padding: const EdgeInsets.all(16),
+    Widget content = spares.isEmpty
+        ? Center(child: Text(t('No spares added yet', 'ஸ்பேர் பாகங்கள் சேர்க்கப்படவில்லை')))
+        : GridView.builder(
+      padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.8,
       ),
       itemCount: spares.length,
       itemBuilder: (context, index) {
@@ -67,7 +70,7 @@ class SparesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t('AC Spare Parts', 'ஏசி ஸ்பேர் பாகங்கள்')),
-        automaticallyImplyLeading: true,
+        leading: backOrHomeButton(context),
       ),
       body: content,
     );
@@ -96,10 +99,30 @@ class _SpareCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Ink.image(
-              image: NetworkImage(spare.imageUrl),
-              fit: BoxFit.cover,
-              child: InkWell(onTap: () {}),
+            child: Stack(
+              children: [
+                Positioned.fill(child: _renderSpareImage(spare.imageUrl)),
+                if (!spare.inStock)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.45),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          t('Out of Stock', 'ஸ்டாக் இல்லை'),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -107,34 +130,41 @@ class _SpareCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayDesc,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      displayDesc,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '₹${spare.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.primary,
-                          ),
+                    Expanded(
+                      child: Text(
+                        '₹${spare.price.toStringAsFixed(0)}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.primary,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     IconButton.filledTonal(
                       onPressed: () {
@@ -154,11 +184,18 @@ class _SpareCard extends StatelessWidget {
                                 '${displayName} கார்டில் சேர்க்கப்பட்டது',
                               ),
                             ),
+                            duration: const Duration(seconds: 1),
+                            action: SnackBarAction(
+                              label: t('View', 'காண்க'),
+                              onPressed: () => Navigator.pushNamed(context, '/cart'),
+                            ),
                           ),
                         );
                       },
                       icon: const Icon(Icons.add_shopping_cart_rounded),
                       iconSize: 18,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
                     ),
                   ],
                 ),
@@ -169,4 +206,13 @@ class _SpareCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _renderSpareImage(String url) {
+  if (url.startsWith('data:image')) {
+    final base64Data = url.split(',').last;
+    final bytes = base64Decode(base64Data);
+    return Image.memory(bytes, fit: BoxFit.cover);
+  }
+  return Image.network(url, fit: BoxFit.cover);
 }

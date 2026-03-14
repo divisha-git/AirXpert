@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../main.dart';
 import '../models/item.dart';
@@ -13,6 +14,7 @@ class ProductsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
+    app.migrateImageUrlsIfNeeded();
     final products = app.products;
     final appLang = AppLanguage.of(context);
     final lang = appLang.languageCode;
@@ -43,13 +45,15 @@ class ProductsScreen extends StatelessWidget {
       }
     }
 
-    Widget content = GridView.builder(
-      padding: const EdgeInsets.all(16),
+    Widget content = products.isEmpty
+        ? Center(child: Text(t('No products added yet', 'பொருட்கள் சேர்க்கப்படவில்லை')))
+        : GridView.builder(
+      padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.8,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
@@ -63,7 +67,7 @@ class ProductsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(t('AC Products', 'ஏசி பொருட்கள்')),
-        automaticallyImplyLeading: true,
+        leading: backOrHomeButton(context),
       ),
       body: content,
     );
@@ -92,51 +96,83 @@ class _ProductCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Ink.image(
-              image: NetworkImage(product.imageUrl),
-              fit: BoxFit.cover,
-              child: InkWell(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ProductDetailScreen(product: product),
+            child: Stack(
+              children: [
+                Positioned.fill(child: _renderImage(product.imageUrl)),
+                Positioned.fill(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(product: product),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (!product.inStock)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.45),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          t('Out of Stock', 'ஸ்டாக் இல்லை'),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayDesc,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      displayDesc,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '₹${product.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.primary,
-                          ),
+                    Expanded(
+                      child: Text(
+                        '₹${product.price.toStringAsFixed(0)}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.primary,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     Row(
                       children: [
@@ -145,7 +181,14 @@ class _ProductCard extends StatelessWidget {
                           onPressed: () {
                             AppState.instance.toggleWishlist(product.id);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(t('Updated wishlist', 'விருப்பப்பட்டியல் புதுப்பிக்கப்பட்டது'))),
+                              SnackBar(
+                                content: Text(t('Updated wishlist', 'விருப்பப்பட்டியல் புதுப்பிக்கப்பட்டது')),
+                                duration: const Duration(seconds: 1),
+                                action: SnackBarAction(
+                                  label: t('View', 'காண்க'),
+                                  onPressed: () => Navigator.pushNamed(context, '/wishlist'),
+                                ),
+                              ),
                             );
                             (context as Element).markNeedsBuild();
                           },
@@ -157,30 +200,42 @@ class _ProductCard extends StatelessWidget {
                                 ? Colors.pinkAccent
                                 : null,
                           ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                          iconSize: 18,
                         ),
                         IconButton.filledTonal(
-                      onPressed: () {
-                        AppState.instance.addToCart(
-                          CartItem(
-                            id: product.id,
-                            name: displayName,
-                            price: product.price,
-                            type: 'product',
-                          ),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              t(
-                                '$displayName added to cart',
-                                '$displayName கார்டில் சேர்க்கப்பட்டது',
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: product.inStock
+                          ? () {
+                              AppState.instance.addToCart(
+                                CartItem(
+                                  id: product.id,
+                                  name: displayName,
+                                  price: product.price,
+                                  type: 'product',
+                                ),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    t(
+                                      '$displayName added to cart',
+                                      '$displayName கார்டில் சேர்க்கப்பட்டது',
+                                    ),
+                                  ),
+                                  duration: const Duration(seconds: 1),
+                                  action: SnackBarAction(
+                                    label: t('View', 'காண்க'),
+                                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                                  ),
+                                ),
+                              );
+                            }
+                          : null,
                       icon: const Icon(Icons.add_shopping_cart_rounded),
                       iconSize: 18,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
                         ),
                       ],
                     ),
@@ -193,4 +248,13 @@ class _ProductCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _renderImage(String url) {
+  if (url.startsWith('data:image')) {
+    final base64Data = url.split(',').last;
+    final bytes = base64Decode(base64Data);
+    return Image.memory(bytes, fit: BoxFit.cover);
+  }
+  return Image.network(url, fit: BoxFit.cover);
 }

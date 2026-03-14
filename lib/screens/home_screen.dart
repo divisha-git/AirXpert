@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
 
 import '../main.dart';
 import '../state/app_state.dart';
-import 'billing_screen.dart';
 import 'contact_screen.dart';
 import 'products_screen.dart';
 import 'service_booking_screen.dart';
@@ -32,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProductsScreen(embedInScaffold: false),
       const SparesScreen(embedInScaffold: false),
       const ServiceBookingScreen(),
-      const BillingScreen(embedInScaffold: false),
       const ContactScreen(embedInScaffold: false),
     ];
 
@@ -41,7 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
       t('Products', 'பொருட்கள்'),
       t('Spares', 'ஸ்பேர் பாகங்கள்'),
       t('Service', 'சேவை'),
-      t('Billing', 'பில்'),
       t('Contact', 'தொடர்பு'),
     ];
 
@@ -113,8 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Quick actions for phone and location
-  final String _carePhone = '+911234567890';
-  final String _mapsUrl = 'https://maps.google.com/?q=AirXpert+AC+Services';
+  final String _carePhone = '9884775851';
+  final String _address = '89/116, Paramathy Road, Opposite Kanna Super Market, Namakkal-637001';
 
   Future<void> _callCare() async {
     final uri = Uri(scheme: 'tel', path: _carePhone);
@@ -124,7 +122,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openLocation() async {
-    final uri = Uri.parse(_mapsUrl);
+    final encoded = Uri.encodeComponent(_address);
+    Uri? uri;
+    if (Platform.isAndroid) {
+      uri = Uri.parse('geo:0,0?q=$encoded');
+      if (!await canLaunchUrl(uri)) {
+        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encoded');
+      }
+    } else if (Platform.isIOS) {
+      uri = Uri.parse('comgooglemaps://?q=$encoded');
+      if (!await canLaunchUrl(uri)) {
+        uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encoded');
+      }
+    } else {
+      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encoded');
+    }
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -143,12 +155,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Align(
               alignment: Alignment.bottomLeft,
-              child: Text(
-                'AirXpert',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
+              child: Flexible(
+                child: Text(
+                  'AirXpert',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),
@@ -179,12 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _drawerItem(
             context,
             4,
-            t('Billing', 'பில்'),
-            Icons.receipt_long_outlined,
-          ),
-          _drawerItem(
-            context,
-            5,
             t('Contact', 'தொடர்பு'),
             Icons.phone_outlined,
           ),
@@ -214,8 +224,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSelected = _index == index;
     return ListTile(
       selected: isSelected,
-      leading: Icon(icon),
-      title: Text(title),
+      selectedTileColor: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
+      leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : null),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? Theme.of(context).colorScheme.primary : null,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       onTap: () {
         Navigator.pop(context);
         if (mounted) setState(() => _index = index);
@@ -257,24 +276,24 @@ class _UserDashboard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      t('Keep your AC summer‑ready', 'உங்கள் ஏசியை எப்போதும் குளிர்ச்சியாக வைத்துக்கொள்ளுங்கள்'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                      Text(
+                        t('Keep your AC summer‑ready', 'உங்கள் ஏசியை எப்போதும் குளிர்ச்சியாக வைத்துக்கொள்ளுங்கள்'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      t(
-                        'Book services, buy spares and track bills in one place.',
-                        'சேவை பதிவு, ஸ்பேர் வாங்குதல், பில் அனைத்தையும் ஒரே இடத்தில்.',
+                      const SizedBox(height: 8),
+                      Text(
+                        t(
+                          'Book services, buy spares and track bills in one place.',
+                          'சேவை பதிவு, ஸ்பேர் வாங்குதல், பில் அனைத்தையும் ஒரே இடத்தில்.',
+                        ),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                        ),
                       ),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -313,9 +332,9 @@ class _UserDashboard extends StatelessWidget {
               onTap: () => Navigator.pushNamed(context, '/spares'),
             ),
             _QuickActionCard(
-              icon: Icons.receipt_long_rounded,
-              label: t('My Bills', 'என் பில்ல்கள்'),
-              onTap: () => Navigator.pushNamed(context, '/billing'),
+              icon: Icons.feedback_rounded,
+              label: t('Feedback', 'கருத்து'),
+              onTap: () => Navigator.pushNamed(context, '/feedback'),
             ),
           ],
         ),
@@ -351,11 +370,15 @@ class _QuickActionCard extends StatelessWidget {
               children: [
                 Icon(icon, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
           ],
             ),
