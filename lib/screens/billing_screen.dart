@@ -95,7 +95,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       (item) => ListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text(item.name),
+                        title: Text(t(item.name, item.nameTa)),
                         subtitle: Text(typeTa(item.type)),
                         trailing:
                             Text('₹${item.price.toStringAsFixed(2)}'),

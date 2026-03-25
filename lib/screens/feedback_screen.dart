@@ -60,9 +60,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
-                  AppState.instance.addFeedback(message: _message.text.trim(), rating: _rating);
+                  
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                  );
+
+                  await AppState.instance.addFeedback(message: _message.text.trim(), rating: _rating);
+                  
+                  if (!mounted) return;
+                  Navigator.pop(context); // Remove loading indicator
+
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('Thanks for your feedback', 'உங்கள் கருத்துக்கு நன்றி'))));
                   _message.clear();
                   setState(() => _rating = 5);
@@ -81,6 +92,43 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       appBar: AppBar(
         title: Text(t('Feedback', 'கருத்து')),
         leading: backOrHomeButton(context),
+        actions: [
+          ListenableBuilder(
+            listenable: AppState.instance,
+            builder: (context, _) {
+              final count = AppState.instance.cartCount;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: body,
     );

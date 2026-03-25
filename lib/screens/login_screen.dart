@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../main.dart';
 import '../state/app_state.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -31,8 +32,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (error != null) {
+      final appLang = AppLanguage.of(context);
+      final lang = appLang.languageCode;
+      String t(String en, String ta) => lang == 'ta' ? ta : en;
+
+      String displayErr = error;
+      if (error == 'Invalid email or password') {
+        displayErr = t('Invalid email or password', 'தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்');
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
+        SnackBar(content: Text(displayErr)),
       );
       return;
     }
@@ -48,6 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppLanguage.of(context).languageCode;
+    String t(String en, String ta) => lang == 'ta' ? ta : en;
+
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(
@@ -94,17 +107,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: "Email",
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: t("Email", "மின்னஞ்சல்"),
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return "Email is required";
+                        return t("Email is required", "மின்னஞ்சல் தேவை");
                       }
                       if (!value.contains('@')) {
-                        return "Enter valid email";
+                        return t("Enter valid email", "சரியான மின்னஞ்சலை உள்ளிடவும்");
                       }
                       return null;
                     },
@@ -116,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _password,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: "Password",
+                      labelText: t("Password", "கடவுச்சொல்"),
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
@@ -134,10 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return "Password is required";
+                        return t("Password is required", "கடவுச்சொல் தேவை");
                       }
                       if (value.length < 4) {
-                        return "Minimum 4 characters";
+                        return t("Minimum 4 characters", "குறைந்தது 4 எழுத்துகள்");
                       }
                       return null;
                     },
@@ -149,17 +162,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _doLogin,
-                      child: const Text("Login"),
+                      child: Text(t("Login", "உள்நுழைக")),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text("Don't have an account? "),
+                      Text(t("Don't have an account? ", "கணக்கு இல்லையா? ")),
                       TextButton(
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
-                        child: const Text("Sign up"),
+                        child: Text(t("Sign up", "பதிவு செய்க")),
                       ),
                     ],
                   ),

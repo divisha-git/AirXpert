@@ -17,23 +17,10 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _problemController = TextEditingController();
 
-  Map<String, dynamic>? _selectedService;
   ServiceType? _selectedServiceType;
   String _acType = 'Split'; // 'Split' | 'Window' | 'Cassette' | 'Portable'
   DateTime? _preferredDate;
   TimeOfDay? _preferredTime;
-
-  String _translateServiceName(String en, String lang) {
-    if (lang != 'ta') return en;
-    final translations = {
-      'AC Installation': 'ஏசி நிறுவல்',
-      'AC Repair': 'ஏசி சரிசெய்தல்',
-      'AC Gas Filling': 'ஏசி எரிவாயு நிரப்புதல்',
-      'AC General Service': 'ஏசி பொது சேவை',
-      'Washing Machine Repair': 'கழுவி இயந்திரம் சரிசெய்தல்',
-    };
-    return translations[en] ?? en;
-  }
 
   @override
   void dispose() {
@@ -44,8 +31,8 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() != true || _selectedService == null || _preferredDate == null || _preferredTime == null) {
+  void _submit() async {
+    if (_formKey.currentState?.validate() != true || _selectedServiceType == null || _preferredDate == null || _preferredTime == null) {
       final appLang = AppLanguage.of(context);
       final lang = appLang.languageCode;
       String t(String en, String ta) => lang == 'ta' ? ta : en;
@@ -54,6 +41,14 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
       );
       return;
     }
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
     AppState.instance.setCustomerDetails(
       name: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
@@ -61,18 +56,22 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
     );
     AppState.instance.addBillItem(
       BillItem(
-        name: _selectedService!['name'],
-        price: _selectedService!['price'],
+        name: _selectedServiceType!.name,
+        nameTa: _selectedServiceType!.nameTa,
+        price: _selectedServiceType!.price,
         type: 'service',
       ),
     );
 
-    AppState.instance.addBooking(
+    await AppState.instance.addBooking(
       customerName: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
       address: _addressController.text.trim(),
       service: _selectedServiceType!,
     );
+
+    if (!mounted) return;
+    Navigator.pop(context); // Remove loading indicator
 
     final appLang = AppLanguage.of(context);
     final lang = appLang.languageCode;
@@ -117,14 +116,52 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('Book Service', 'சேவை பதிவு')),
-        automaticallyImplyLeading: true,
+        title: Text(t('Service Booking', 'சேவை பதிவு')),
+        leading: backOrHomeButton(context),
+        actions: [
+          ListenableBuilder(
+            listenable: AppState.instance,
+            builder: (context, _) {
+              final count = AppState.instance.cartCount;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
                 controller: _nameController,
@@ -156,13 +193,20 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: t('AC Type', 'ஏசி வகை'),
                   prefixIcon: const Icon(Icons.ac_unit_rounded),
                 ),
                 value: _acType,
                 items: ['Split', 'Window', 'Cassette', 'Portable']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(t(e, e == 'Split' ? 'ஸ்ப்ளிட்' : e == 'Window' ? 'விண்டோ' : e == 'Cassette' ? 'கேஸெட்' : 'போர்டபுள்'))))
+                    .map((e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(
+                            t(e, e == 'Split' ? 'ஸ்ப்ளிட்' : e == 'Window' ? 'விண்டோ' : e == 'Cassette' ? 'கேஸெட்' : 'போர்டபுள்'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setState(() => _acType = v ?? 'Split'),
               ),
@@ -177,18 +221,17 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<ServiceType>(
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: t('Service Type', 'சேவை வகை'),
                   prefixIcon: const Icon(Icons.build_outlined),
                 ),
                 value: _selectedServiceType,
                 items: services.map((s) {
-                  final nameEn = s.name;
-                  final nameTa = _translateServiceName(nameEn, lang);
                   return DropdownMenuItem(
                     value: s,
                     child: Text(
-                      '${lang == 'ta' ? nameTa : nameEn} - ₹${s.price.toStringAsFixed(2)}',
+                      '${t(s.name, s.nameTa)} - ₹${s.price.toStringAsFixed(0)}',
                       overflow: TextOverflow.ellipsis,
                     ),
                   );
@@ -197,14 +240,13 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                   if (val != null) {
                     setState(() {
                       _selectedServiceType = val;
-                      _selectedService = {
-                        'name': lang == 'ta' ? _translateServiceName(val.name, lang) : val.name,
-                        'price': val.price,
-                      };
                     });
                   }
                 },
-                hint: Text(t('Select a service', 'சேவையைத் தேர்ந்தெடுக்கவும்')),
+                hint: Text(
+                  t('Select a service', 'சேவையைத் தேர்ந்தெடுக்கவும்'),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -222,14 +264,12 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                         if (picked != null) setState(() => _preferredDate = picked);
                       },
                       icon: const Icon(Icons.event_rounded),
-                      label: Flexible(
-                        child: Text(
-                          _preferredDate == null
-                              ? t('Pick date', 'தேதியைத் தேர்ந்தெடுக்கவும்')
-                              : '${_preferredDate!.day.toString().padLeft(2, '0')}-${_preferredDate!.month.toString().padLeft(2, '0')}-${_preferredDate!.year}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      label: Text(
+                        _preferredDate == null
+                            ? t('Pick date', 'தேதியைத் தேர்ந்தெடுக்கவும்')
+                            : '${_preferredDate!.day.toString().padLeft(2, '0')}-${_preferredDate!.month.toString().padLeft(2, '0')}-${_preferredDate!.year}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -244,14 +284,12 @@ class _ServiceBookingScreenState extends State<ServiceBookingScreen> {
                         if (picked != null) setState(() => _preferredTime = picked);
                       },
                       icon: const Icon(Icons.schedule_rounded),
-                      label: Flexible(
-                        child: Text(
-                          _preferredTime == null
-                              ? t('Pick time', 'நேரத்தைத் தேர்ந்தெடுக்கவும்')
-                              : '${_preferredTime!.hour.toString().padLeft(2, '0')}:${_preferredTime!.minute.toString().padLeft(2, '0')}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      label: Text(
+                        _preferredTime == null
+                            ? t('Pick time', 'நேரத்தைத் தேர்ந்தெடுக்கவும்')
+                            : '${_preferredTime!.hour.toString().padLeft(2, '0')}:${_preferredTime!.minute.toString().padLeft(2, '0')}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),

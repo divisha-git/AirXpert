@@ -42,19 +42,40 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _doSignup() {
+  void _doSignup() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    final err = AppState.instance.signup(
+    // Show a loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final err = await AppState.instance.signup(
       name: _name.text.trim(),
       email: _email.text.trim(),
       password: _password.text,
       role: _role,
     );
 
+    if (!mounted) return;
+    Navigator.pop(context); // Remove loading dialog
+
     if (err != null) {
+      final appLang = AppLanguage.of(context);
+      final lang = appLang.languageCode;
+      String t(String en, String ta) => lang == 'ta' ? ta : en;
+
+      String displayErr = err;
+      if (err == 'User already exists') {
+        displayErr = t('User already exists', 'பயனர் ஏற்கனவே உள்ளார்');
+      } else if (err == 'Invalid role') {
+        displayErr = t('Invalid role', 'தவறான பங்கு');
+      }
+
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(err)));
+          .showSnackBar(SnackBar(content: Text(displayErr)));
       return;
     }
 
@@ -184,6 +205,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   const SizedBox(height: 16),
                                   DropdownButtonFormField<String>(
                                     value: _role,
+                                    isExpanded: true,
                                     decoration: InputDecoration(
                                       labelText: t('Role', 'பங்கு'),
                                       prefixIcon: const Icon(
@@ -193,12 +215,16 @@ class _SignupScreenState extends State<SignupScreen> {
                                       DropdownMenuItem(
                                         value: 'user',
                                         child: Text(
-                                            t('Customer', 'வாடிக்கையாளர்')),
+                                          t('Customer', 'வாடிக்கையாளர்'),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                       DropdownMenuItem(
                                         value: 'admin',
-                                        child: Text(t('Shop Owner',
-                                            'கடை உரிமையாளர்')),
+                                        child: Text(
+                                          t('Shop Owner', 'கடை உரிமையாளர்'),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                     ],
                                     onChanged: (v) =>
@@ -211,9 +237,9 @@ class _SignupScreenState extends State<SignupScreen> {
                                     Text(t('Sign Up', 'பதிவு செய்க')),
                                   ),
                                   const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment:
-                                    MainAxisAlignment.center,
+                                  Wrap(
+                                    alignment: WrapAlignment.center,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
                                     children: [
                                       Text(t('Already have an account? ',
                                           'ஏற்கனவே கணக்கு உள்ளதா? ')),

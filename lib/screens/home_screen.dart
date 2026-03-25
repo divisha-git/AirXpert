@@ -8,6 +8,7 @@ import 'contact_screen.dart';
 import 'products_screen.dart';
 import 'service_booking_screen.dart';
 import 'spares_screen.dart';
+import 'feedback_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProductsScreen(embedInScaffold: false),
       const SparesScreen(embedInScaffold: false),
       const ServiceBookingScreen(),
+      const FeedbackScreen(embedInScaffold: false),
       const ContactScreen(embedInScaffold: false),
     ];
 
@@ -40,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       t('Products', 'பொருட்கள்'),
       t('Spares', 'ஸ்பேர் பாகங்கள்'),
       t('Service', 'சேவை'),
+      t('Feedback', 'கருத்து'),
       t('Contact', 'தொடர்பு'),
     ];
 
@@ -47,6 +50,41 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(pageTitles[_index]),
         actions: [
+          ListenableBuilder(
+            listenable: AppState.instance,
+            builder: (context, _) {
+              final cartCount = AppState.instance.cartCount;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    tooltip: t('My Cart', 'என் கார்ட்'),
+                    icon: const Icon(Icons.shopping_cart_rounded),
+                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                  ),
+                  if (cartCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$cartCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             tooltip: t('Call customer care', 'வாடிக்கையாளர் பராமரிப்பிற்கு அழை'),
             icon: const Icon(Icons.call_rounded),
@@ -195,6 +233,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _drawerItem(
             context,
             4,
+            t('Feedback', 'கருத்து'),
+            Icons.feedback_outlined,
+          ),
+          _drawerItem(
+            context,
+            5,
             t('Contact', 'தொடர்பு'),
             Icons.phone_outlined,
           ),
@@ -205,6 +249,41 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/wishlist');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.shopping_cart_outlined),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(t('Cart', 'கார்ட்')),
+                ListenableBuilder(
+                  listenable: AppState.instance,
+                  builder: (context, _) {
+                    final count = AppState.instance.cartCount;
+                    if (count == 0) return const SizedBox.shrink();
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/cart');
             },
           ),
           ListTile(
@@ -254,91 +333,96 @@ class _UserDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                colorScheme.primary,
-                colorScheme.primaryContainer,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                      Text(
-                        t('Keep your AC summer‑ready', 'உங்கள் ஏசியை எப்போதும் குளிர்ச்சியாக வைத்துக்கொள்ளுங்கள்'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        t(
-                          'Book services, buy spares and track bills in one place.',
-                          'சேவை பதிவு, ஸ்பேர் வாங்குதல், பில் அனைத்தையும் ஒரே இடத்தில்.',
-                        ),
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.ac_unit_rounded,
-                color: Colors.white,
-                size: 40,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          t('Quick actions', 'விரைவு செயல்பாடுகள்'),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        return ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            _QuickActionCard(
-              icon: Icons.build_circle_rounded,
-              label: t('Book Service', 'சேவை பதிவு'),
-              onTap: () => Navigator.pushNamed(context, '/service'),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    colorScheme.primary,
+                    colorScheme.primaryContainer,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Keep your AC summer‑ready', 'உங்கள் ஏசியை எப்போதும் குளிர்ச்சியாக வைத்துக்கொள்ளுங்கள்'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          t(
+                            'Book services, buy spares and track bills in one place.',
+                            'சேவை பதிவு, ஸ்பேர் வாங்குதல், பில் அனைத்தையும் ஒரே இடத்தில்.',
+                          ),
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(
+                    Icons.ac_unit_rounded,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ],
+              ),
             ),
-            _QuickActionCard(
-              icon: Icons.shopping_bag_rounded,
-              label: t('AC Products', 'ஏசி பொருட்கள்'),
-              onTap: () => Navigator.pushNamed(context, '/products'),
+            const SizedBox(height: 20),
+            Text(
+              t('Quick actions', 'விரைவு செயல்பாடுகள்'),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            _QuickActionCard(
-              icon: Icons.handyman_rounded,
-              label: t('Spare Parts', 'ஸ்பேர் பாகங்கள்'),
-              onTap: () => Navigator.pushNamed(context, '/spares'),
-            ),
-            _QuickActionCard(
-              icon: Icons.feedback_rounded,
-              label: t('Feedback', 'கருத்து'),
-              onTap: () => Navigator.pushNamed(context, '/feedback'),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _QuickActionCard(
+                  icon: Icons.build_circle_rounded,
+                  label: t('Book Service', 'சேவை பதிவு'),
+                  onTap: () => Navigator.pushNamed(context, '/service'),
+                ),
+                _QuickActionCard(
+                  icon: Icons.shopping_bag_rounded,
+                  label: t('AC Products', 'ஏசி பொருட்கள்'),
+                  onTap: () => Navigator.pushNamed(context, '/products'),
+                ),
+                _QuickActionCard(
+                  icon: Icons.handyman_rounded,
+                  label: t('Spare Parts', 'ஸ்பேர் பாகங்கள்'),
+                  onTap: () => Navigator.pushNamed(context, '/spares'),
+                ),
+                _QuickActionCard(
+                  icon: Icons.feedback_rounded,
+                  label: t('Feedback', 'கருத்து'),
+                  onTap: () => Navigator.pushNamed(context, '/feedback'),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -356,31 +440,36 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2,
       child: Card(
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colorScheme.onSurface.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                Icon(icon, size: 32, color: colorScheme.primary),
                 const SizedBox(height: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface.withOpacity(0.8),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-          ],
+              ],
             ),
           ),
         ),

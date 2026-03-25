@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../state/app_state.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -18,7 +17,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted || _navigated) return;
     _navigated = true;
     final user = AppState.instance.currentUser;
-    final target = user == null ? '/login' : (user.role == 'admin' ? '/admin' : '/user');
+    final target = user == null
+        ? '/login'
+        : (user.role == 'admin' ? '/admin' : '/user');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, target);
@@ -29,11 +30,6 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     () async {
-      try {
-        await Firebase.initializeApp().timeout(const Duration(seconds: 3));
-      } catch (_) {
-        // Ignore: initialization may have been done or relies on platform config
-      }
       final initFuture = AppState.instance.init();
       await Future.any([
         initFuture,
@@ -67,9 +63,9 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
         child: SafeArea(
           child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
                 Container(
                   height: 96,
                   width: 96,

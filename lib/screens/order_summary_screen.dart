@@ -35,6 +35,43 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
       appBar: AppBar(
         title: Text(t('Order Summary', 'ஆர்டர் சுருக்கம்')),
         leading: backOrHomeButton(context),
+        actions: [
+          ListenableBuilder(
+            listenable: AppState.instance,
+            builder: (context, _) {
+              final count = AppState.instance.cartCount;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pushNamed(context, '/cart'),
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -53,7 +90,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                       ...items.map((c) => ListTile(
                             dense: true,
                             contentPadding: EdgeInsets.zero,
-                            title: Text(c.name),
+                            title: Text(t(c.name, c.nameTa)),
                             trailing: Text('₹${(c.price * c.quantity).toStringAsFixed(2)}'),
                           )),
                     ],
